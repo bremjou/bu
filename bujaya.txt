@@ -1,0 +1,214 @@
+aws ec2 create-key-pair
+--key-name 1ks-key \
+--query "KeyMaterial" \
+--output text> 1ks-key.pem
+
+#2. Set permission file (WAJIB, kalau tidak SSH akan ditolak)
+
+chmod 400 1ks-key.pem
+# 3. Verifikasi key sudah terdaftar di AWS
+aws ec2 describe-key-pairs-key-names 1ks-key
+
+var
+variable "participant_name" {
+}
+
+default "johndoe" #ganti dengan nama kamu (huruf kecil, no spasi)
+
+variable "region" {
+
+} default "us-east-1" # North Virginia WAJIB ini
+
+variable "ami_id" {
+
+} default "ami-0c101f26f147fa7fd" # Amazon Linux 2023 us-east-1
+
+variable "instance_type" {
+
+}
+
+default "t2.micro" # Free tier, cukup untuk lomba
+
+main
+terraform {
+
+required_providers {
+
+aws = {
+
+source "hashicorp/aws"
+
+version "~> 5.0"
+
+} }
+
+}
+
+provider "aws" {
+
+region var.region
+
+# Di AWS Academy, credentials sudah otomatis dari environment }
+
+resource "aws_s3_bucket" "lks_bucket" {
+
+bucket "1kssep2020${var.participant_name}"
+
+# Contoh hasil: lkssep2020johndoe
+
+}
+
+resource "aws_s3_bucket_versioning" "1ks_bucket_versioning" {
+
+bucket aws s3 bucket.lks bucket.id
+
+versioning_configuration {
+
+status "Enabled"
+
+}
+
+}
+
+# Intelligent Tiering WAJIB ada untuk poin A3
+
+resource "aws_s3_bucket_intelligent_tiering_configuration" "lks_tiering" {
+
+# JANGAN pakai tanda kutip! Harus reference, bukan string
+
+bucket aws_s3 bucket.lks_bucket.id
+
+name = "LKSTiering"
+
+depends_on [aws_s3_bucket.lks_bucket] # pastikan bucket ada dulu
+
+tiering {
+
+}
+
+access_tier "ARCHIVE_ACCESS"
+
+days 90
+
+tiering {
+
+access tier "DEEP_ARCHIVE_ACCESS"
+
+#VERSI AWS ACADEMY
+
+data "aws_iam_instance_profile" "lab_profile" {
+
+name "Lab InstanceProfile" # sudah ada di setiap akun Academy
+
+}
+
+resource "aws_security_group" "web_sg" {
+
+name
+
+"lks-web-sg"
+
+description "Security group untuk LKS web server"
+
+ingress {
+
+from_port 80
+
+to_port 80
+
+protocol "tcp"
+
+cidr blocks ["0.0.0.0/0"]
+
+}
+
+ingress {
+
+from_port
+
+= 22
+
+to_port 22
+
+protocol "tcp"
+
+["0.0.0.0/0"] cidr_blocks
+
+}
+
+egress {
+
+from_port = 0
+
+to_port = 0
+
+protocol "-1"
+
+}
+
+cidr_blocks ["0.0.0.0/0"]
+
+tags = { Name "lks-web-sg" }
+
+}
+
+resource "aws_instance" "web_server" {
+
+ami var.ami_id
+
+instance_type
+
+var.instance_type
+
+key_name
+
+"1ks-key" # nama key pair yang sudah dibuat
+
+#WAJIB: tanpa ini EC2 tidak bisa akses S3
+
+data.aws_iam_instance_profile.lab_profile.name
+
+iam_instance_profile
+
+vpc_security_group_ids= [aws_security_group.web_sg.id]
+
+user_data
+
+= file("userdata.sh")
+
+tags = {
+
+Name "1ks-web-server"
+
+}
+
+}
+userdata sh
+#!/bin/bash
+
+yum update -y
+
+yum install -y nginx
+
+systemctl start nginx
+
+systemctl enable nginx
+
+output
+output "ec2_public_ip" {
+
+description "IP publik EC2 buka di browser"
+
+value aws_instance.web_server.public_ip
+
+}
+
+output "bucket_name" {
+
+description "Nama S3 bucket"
+
+value
+
+aws_s3_bucket.lks_bucket.id
+
+}
