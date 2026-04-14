@@ -1,0 +1,81 @@
+# AWS Academy: pakai LabRole yang sudah ada
+
+data "aws_iam_role" "lab_role" {
+
+}
+
+name "LabRole"
+
+data "archive_file" "lambda_zip" {
+
+type "zip"
+
+source_file "lambda_function.py"
+
+output_path. "lambda.zip"
+
+}
+
+resource "aws_lambda_function" "file_logger" {
+
+filename
+
+"lambda.zip"
+
+function_name
+
+role
+
+"lks-file-logger"
+
+handler
+
+data.aws_iam_role.lab_role.arn # AWS Academy
+
+runtime
+
+"lambda_function.lambda_handler"
+
+source code hash
+
+"python3.11"
+
+timeout
+
+30
+
+data.archive_file.lambda_zip.output_base64 sha256
+
+memory_size
+
+128
+
+environment {
+
+variables = {
+
+}
+
+TABLE NAME "lks-file-metadata"
+}
+}
+
+resource "aws_dynamodb_table" "file_metadata" {
+
+name "lks-file-metadata"
+
+billing_mode = "PAY_PER_REQUEST"
+
+}
+
+hash_key = "file_name"
+
+attribute {
+
+}
+
+name = "file_name"
+
+type = "ς"
+
+tags { Name "lks-file-metadata" )
